@@ -5,7 +5,7 @@ window.APP_CONFIG = {
   empresa: { nome: 'Boca Gelada', subtitulo: 'Produção · Estoque · Vendas' },
 
   /* URL do App da Web do Apps Script (backend/Code.gs), termina em /exec */
-  api: 'COLE_AQUI_O_LINK_DO_APP_DA_WEB',
+  api: 'https://script.google.com/macros/s/AKfycbxw5BGpwwRp_Nq3M6mb74qx_UB1jLoRbYj9HSFtit8u3wNbLVwjTh2MY71w1208BV5sfw/exec',
 
   /* Prefixo das chaves guardadas no celular. Não mude depois de começar a usar. */
   storagePrefix: 'bocagelada',
