@@ -10,8 +10,9 @@ function A1(a1) { // "J5:J34" ou "D3"
 }
 function Sheet(nome, linhas, colunas) {
   const g = Array.from({ length: linhas }, () => Array(colunas).fill(''));
+  const notas = Array.from({ length: linhas }, () => Array(colunas).fill(''));
   const sh = {
-    g, getName: () => nome, getMaxRows: () => g.length,
+    g, notas, getName: () => nome, getMaxRows: () => g.length,
     insertRowsAfter(_, n) { for (let i = 0; i < n; i++) g.push(Array(colunas).fill('')); },
     getRange(r, c, nr, nc) {
       if (typeof r === 'string') [r, c, nr, nc] = A1(r);
@@ -19,11 +20,14 @@ function Sheet(nome, linhas, colunas) {
       return {
         getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (g[r - 1 + i] || [])[c - 1 + j] ?? '')),
         getValue: () => g[r - 1][c - 1],
+        getNotes: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (notas[r - 1 + i] || [])[c - 1 + j] ?? '')),
+        setNote(t) { notas[r - 1][c - 1] = t; return this; },
+        setNumberFormat() { return this; },
         setValues(v) { v.forEach((row, i) => row.forEach((x, j) => { g[r - 1 + i][c - 1 + j] = typeof x === 'string' && x[0] === "'" ? x.slice(1) : x; })); },
-        setValue(x) { g[r - 1][c - 1] = x; },
+        setValue(x) { g[r - 1][c - 1] = x; return this; },
         clearContent() { g[r - 1][c - 1] = ''; },
         deleteCells() { // sobe as células de baixo dentro das colunas c..c+nc-1
-          for (let i = r - 1; i < g.length; i++) for (let j = c - 1; j < c - 1 + nc; j++) g[i][j] = i + nr < g.length ? g[i + nr][j] : '';
+          for (let i = r - 1; i < g.length; i++) for (let j = c - 1; j < c - 1 + nc; j++) { g[i][j] = i + nr < g.length ? g[i + nr][j] : ''; notas[i][j] = i + nr < g.length ? notas[i + nr][j] : ''; }
         }
       };
     }
@@ -34,7 +38,12 @@ const hist = Sheet('HISTÓRICO', 30, 28), cad = Sheet('Cadastros', 40, 26), vend
 ['Água de coco', 'Morango', 'Maracujá', 'Maçã Verde', 'Bob', 'Melancia', 'Limão', 'Laranja', 'Limão com sal', 'Frutas cítricas', 'Frutas vermelhas', 'Abacaxi', 'Brasil']
   .forEach((s, i) => { cad.g[4 + i][9] = 'S.' + String(i + 1).padStart(2, '0') + ' - ' + s; });
 vendas.g[2][3] = 39;
-const abas = { 'HISTÓRICO': hist, 'Cadastros': cad, 'VENDAS': vendas };
+const lancar = Sheet('LANÇAR', 40, 20);
+// histórico: 2 dias já lançados à mão
+lancar.g[5][0] = new Date(2026, 10, 24); lancar.g[5][1] = 'S.04 - Maçã Verde'; lancar.g[5][2] = 0.33; lancar.g[5][3] = 0.36;
+lancar.g[6][1] = 'S.03 - Maracujá'; lancar.g[6][2] = 0.4; lancar.g[6][3] = 0.43;
+lancar.g[5][6] = new Date(2026, 10, 24); lancar.g[5][17] = 'anotado à mão';
+const abas = { 'HISTÓRICO': hist, 'Cadastros': cad, 'VENDAS': vendas, 'LANÇAR': lancar };
 const props = {};
 const pad = n => String(n).padStart(2, '0');
 const ctx = {
@@ -70,11 +79,12 @@ http.createServer((req, res) => {
     });
     return;
   }
+  if (u.pathname === '/__lancar') { res.end(JSON.stringify(lancar.g.slice(5, 12).map((r, i) => [r.slice(0, 4).concat(r.slice(6, 10), [r[17]]).map(x => x instanceof Date ? x.toISOString().slice(0, 10) : x), lancar.notas[5 + i][1]]))); return; }
   if (u.pathname === '/__hist') { res.end(JSON.stringify(hist.g.slice(0, 14).map(r => r.map(x => x instanceof Date ? x.toISOString().slice(0, 10) : x)))); return; }
   let f = path.join(SITE, u.pathname === '/' ? 'index.html' : u.pathname);
   if (!fs.existsSync(f)) { res.writeHead(404); res.end(); return; }
   let txt = fs.readFileSync(f);
-  if (f.endsWith('config.js')) txt = String(txt).replace('COLE_AQUI_O_LINK_DO_APP_DA_WEB', 'http://localhost:' + PORTA + '/api');
+  if (f.endsWith('config.js')) txt = String(txt).replace(/api: '[^']*'/, "api: 'http://localhost:" + PORTA + "/api'");
   res.writeHead(200, { 'Content-Type': { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[path.extname(f)] || 'text/plain' });
   res.end(txt);
 }).listen(PORTA, () => console.log('ok ' + PORTA));

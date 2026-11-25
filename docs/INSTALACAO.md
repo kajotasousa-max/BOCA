@@ -31,6 +31,8 @@ No celular, abra o link e use **Adicionar à tela inicial**.
 | U:W | Desperdício — DATA, JARRA (ml), PÓ (g) |
 | Y:AB | Ajustes — DATA, SABOR, CAIXAS (±), MOTIVO |
 
+Cada ciclo também é copiado para a aba **LANÇAR** (Data só na 1ª linha do dia, Sabor, HI, HF), e o fechamento do dia (G:J: realizado, pó em kg, gelo perdido em L) é refeito a cada apontamento. Embalagem perdida e os motivos (L:Q) continuam à mão. A Observação (R) só é preenchida pelo sistema se estiver vazia ou começar com `[Sistema]`.
+
 As abas **VENDAS** e **OPERADOR** da planilha leem daqui, então continuam funcionando. Digitar em "VENDI AGORA" na aba VENDAS também lança a venda.
 
 ## Problemas comuns

@@ -76,6 +76,7 @@ function status(t) { $('#status').textContent = t; }
 
 /** Resposta de gravação: traz o dia e o painel atualizados. */
 function aplicar(j) {
+  if (j.aviso) toast('⚠ ' + j.aviso, true);
   if (j.data) state.dias[j.data] = { ciclos: j.ciclos, vendas: j.vendas, ajustes: j.ajustes, perda: j.perda };
   if (j.painel) state.painel = j.painel;
   renderTudo();

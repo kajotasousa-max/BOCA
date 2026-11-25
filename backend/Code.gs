@@ -10,6 +10,10 @@
  *   Y:AB  AJUSTES     DATA | SABOR | CAIXAS (±) | MOTIVO
  * As abas VENDAS e OPERADOR (monitor) calculam o estoque a partir dela.
  *
+ * Cada ciclo também é copiado para a aba LANÇAR (como se o quadro fosse digitado),
+ * e o fechamento do dia (realizado, pó, gelo perdido) é refeito a cada apontamento.
+ * Assim Ciclos, Painel, Resumo Diário e as demais análises seguem atualizando.
+ *
  * Estoque de cada sabor = cheio (VENDAS!D3) + produzido − vendido + ajustes.
  *
  * Senhas (menu "Boca Gelada" da planilha):
@@ -17,7 +21,7 @@
  *   O painel (estoque) abre sem senha: é o que aparece no monitor da fábrica.
  */
 
-const VERSAO = '1.0.0';
+const VERSAO = '1.1.0';
 const PLANILHA_ID = '1XRadgrQiI6JKQEU4ubK0jzzfZVl21cxNRnnf_sksGyU';
 const UN_POR_CAIXA = 30;
 const CAIXAS_POR_CICLO = 10;      // 19 formas × 16 un ≈ 304 un ≈ 10 cx
@@ -95,16 +99,17 @@ function doPost(e) {
   lock.waitLock(20000);
   try {
     const data = b.data || hojeIso_();
+    avisoQuadro = '';
     switch (b.kind) {
-      case 'producao':         salvarProducao_(data, b.ciclo || {}); break;
-      case 'excluir-producao': excluirProducao_(b.id); break;
-      case 'perda':            salvarPerda_(data, b.jarra, b.po); break;
+      case 'producao':         salvarProducao_(data, b.ciclo || {}); quadro_(() => { lancarNoQuadro_(data, b.ciclo || {}); fecharDia_(data); }); break;
+      case 'excluir-producao': excluirProducao_(b.id); quadro_(() => { excluirDoQuadro_(b.id); fecharDia_(data); }); break;
+      case 'perda':            salvarPerda_(data, b.jarra, b.po); quadro_(() => fecharDia_(data)); break;
       case 'venda':            lancar_('venda', [paraData_(data), "'" + horaAgora_(), sabor_(b.sabor), inteiro_(b.caixas)]); break;
       case 'ajuste':           lancar_('ajuste', [paraData_(data), sabor_(b.sabor), inteiro_(b.caixas), String(b.motivo || '')]); break;
       default:                 return json({ ok: false, erro: 'kind desconhecido: ' + b.kind });
     }
     SpreadsheetApp.flush();
-    return json(Object.assign({ ok: true }, lerDia_(data), { painel: painel_() }));
+    return json(Object.assign({ ok: true }, lerDia_(data), { painel: painel_() }, avisoQuadro ? { aviso: avisoQuadro } : {}));
   } catch (err) {
     return json({ ok: false, erro: String(err && err.message || err) });
   } finally { lock.releaseLock(); }
@@ -114,12 +119,13 @@ function doPost(e) {
 
 function salvarProducao_(data, c) {
   const sh = hist_();
-  if (c.id && acharLinha_(sh, COL.producao + 10, c.id) > 0) return;   // reenvio do celular: já gravado
   const qtd = inteiro_(c.qty);
   if (qtd <= 0) throw new Error('Quantidade inválida.');
+  if (!c.id) c.id = Utilities.getUuid();
+  if (acharLinha_(sh, COL.producao + 10, c.id) > 0) return;   // reenvio do celular: já gravado
   lancar_('producao', [
     paraData_(data), "'" + (c.endTime || horaAgora_()), sabor_(c.flavor), qtd, Math.round(qtd / UN_POR_CAIXA),
-    c.machine || 'Máquina', "'" + (c.startTime || ''), c.operator || '', c.shift || '', c.notes || '', c.id || Utilities.getUuid()
+    c.machine || 'Máquina', "'" + (c.startTime || ''), c.operator || '', c.shift || '', c.notes || '', c.id
   ]);
 }
 
@@ -141,6 +147,95 @@ function lancar_(bloco, valores) {
   const sh = hist_();
   sh.getRange(proximaLinha_(sh, COL[bloco]), COL[bloco], 1, LARG[bloco]).setValues([valores]);
 }
+
+
+/* ======================= ABA LANÇAR (o "quadro" digital) ======================= */
+/*
+ * Esquerda (A:D, da linha 6 em diante): uma linha por ciclo — Data (só na 1ª linha do dia), Sabor, HI, HF.
+ *   A linha ganha uma nota escondida na coluna B com o id do ciclo, para poder ser excluída depois.
+ * Direita (G:R): uma linha por dia — Data, Realizado (un), Pó descartado (kg), Gelo pronto (L).
+ *   Embalagem perdida e os motivos (L:Q) continuam sendo digitados à mão; o sistema não mexe neles.
+ *   A Observação (R) só é escrita pelo sistema se estiver vazia ou começar com [Sistema].
+ */
+const QUADRO = { aba: 'LANÇAR', primeira: 6, colG: 7 };
+let avisoQuadro = '';
+
+/** O estoque nunca para por causa do quadro: se a LANÇAR der erro, o ciclo fica salvo e volta um aviso. */
+function quadro_(fn) {
+  try { fn(); } catch (err) { avisoQuadro = 'Salvo no estoque, mas não foi para a aba LANÇAR: ' + (err && err.message || err); }
+}
+function lancarAba_() {
+  const sh = planilha_().getSheetByName(QUADRO.aba);
+  if (!sh) throw new Error('Aba LANÇAR não encontrada.');
+  return sh;
+}
+function horaFracao_(hm) {
+  const m = String(hm || '').match(/^(\d{1,2}):(\d{2})/);
+  return m ? (Number(m[1]) * 60 + Number(m[2])) / 1440 : '';
+}
+function marca_(id) { return 'id sistema: ' + id; }
+
+function lancarNoQuadro_(data, c) {
+  const sh = lancarAba_();
+  const n = sh.getMaxRows() - QUADRO.primeira + 1;
+  const notas = sh.getRange(QUADRO.primeira, 2, n, 1).getNotes();
+  if (notas.some(r => r[0] === marca_(c.id))) return;                 // já está no quadro
+  const v = sh.getRange(QUADRO.primeira, 1, n, 2).getValues();
+  let ultima = -1, diaAtual = '', temDia = false;
+  v.forEach((r, i) => {
+    if (r[0] instanceof Date) diaAtual = iso_(r[0]);
+    if (r[1] !== '' || r[0] !== '') { ultima = i; if (diaAtual === data) temDia = true; }
+  });
+  const linha = QUADRO.primeira + ultima + 1;
+  if (linha > sh.getMaxRows()) throw new Error('A aba LANÇAR está cheia.');
+  sh.getRange(linha, 1, 1, 4).setValues([[temDia ? '' : paraData_(data), sabor_(c.flavor), horaFracao_(c.startTime), horaFracao_(c.endTime)]]);
+  sh.getRange(linha, 1).setNumberFormat('dd/mm/yyyy');
+  sh.getRange(linha, 3, 1, 2).setNumberFormat('hh:mm');
+  sh.getRange(linha, 2).setNote(marca_(c.id));
+}
+
+function excluirDoQuadro_(id) {
+  const sh = lancarAba_();
+  const n = sh.getMaxRows() - QUADRO.primeira + 1;
+  const i = sh.getRange(QUADRO.primeira, 2, n, 1).getNotes().findIndex(r => r[0] === marca_(id));
+  if (i < 0) return;
+  const linha = QUADRO.primeira + i;
+  const data = sh.getRange(linha, 1).getValue();
+  const prox = sh.getRange(linha + 1, 1, 1, 2).getValues()[0];
+  // a data fica só na 1ª linha do dia: se apagar essa, a data desce para a linha de baixo
+  if (data instanceof Date && prox[0] === '' && prox[1] !== '') sh.getRange(linha + 1, 1).setValue(data).setNumberFormat('dd/mm/yyyy');
+  sh.getRange(linha, 1, 1, 4).deleteCells(SpreadsheetApp.Dimension.ROWS);
+}
+
+/** Refaz o fechamento do dia (G:J e, se for do sistema, R) a partir do HISTÓRICO. */
+function fecharDia_(data) {
+  const d = lerDia_(data);
+  const sh = lancarAba_();
+  const n = sh.getMaxRows() - QUADRO.primeira + 1;
+  const datas = sh.getRange(QUADRO.primeira, QUADRO.colG, n, 1).getValues();
+  let i = datas.findIndex(r => r[0] instanceof Date && iso_(r[0]) === data);
+  if (i < 0) {
+    if (!d.ciclos.length && !d.perda.jarMl && !d.perda.powderG) return;
+    let ultima = -1; datas.forEach((r, k) => { if (r[0] !== '') ultima = k; });
+    i = ultima + 1;
+  }
+  const linha = QUADRO.primeira + i;
+  const realizado = d.ciclos.reduce((t, c) => t + c.qty, 0);
+  sh.getRange(linha, QUADRO.colG, 1, 4).setValues([[paraData_(data), realizado || '',
+    d.perda.powderG ? d.perda.powderG / 1000 : '', d.perda.jarMl ? d.perda.jarMl / 1000 : '']]);
+  sh.getRange(linha, QUADRO.colG).setNumberFormat('dd/mm/yyyy');
+  const obs = sh.getRange(linha, 18);
+  const atual = String(obs.getValue() || '');
+  if (!atual || atual.indexOf('[Sistema]') === 0) {
+    const parciais = d.ciclos.filter(c => c.qty < 19 * 16)
+      .map(c => curto_(c.flavor) + ' ' + Math.round(c.qty / 16) + 'F ' + c.endTime);
+    const notas = d.ciclos.filter(c => c.notes).map(c => c.endTime + ' ' + c.notes);
+    obs.setValue('[Sistema] Apontado pelo celular.' +
+      (parciais.length ? ' Formas parciais: ' + parciais.join(', ') + '.' : '') +
+      (notas.length ? ' Obs.: ' + notas.join('; ') + '.' : ''));
+  }
+}
+function curto_(s) { return String(s || '').replace(/^S\.\d+\s*-\s*/, ''); }
 
 /* ======================= LEITURAS ======================= */
 
