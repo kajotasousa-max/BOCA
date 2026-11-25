@@ -3,173 +3,864 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>GD — Boca Gelada</title>
 <meta name="theme-color" content="#0F1B2A" />
-<title>Caiu Gelo — Boca Gelada</title>
 <style>
   :root{
-    --bg:#F4F6F8; --panel:#FFFFFF; --ink:#0F1B2A; --ink-2:#3A4A5C; --ink-3:#7A8899;
-    --line:#E1E7ED; --line-2:#C7D0DA; --accent:#0B6E8C; --ok:#177245; --err:#B0203C; --radius:10px;
+    --bg:#F4F6F8;
+    --panel:#FFFFFF;
+    --ink:#0F1B2A;
+    --ink-2:#3A4A5C;
+    --ink-3:#7A8899;
+    --line:#E1E7ED;
+    --line-2:#C7D0DA;
+    --accent:#0B6E8C;
+    --accent-2:#0A4C63;
+    --ok:#177245;
+    --warn:#B45309;
+    --err:#B0203C;
+    --chip-ink:#0F1B2A;
+    --radius:6px;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;background:var(--bg);color:var(--ink);
-    font-family:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.35}
-  .num{font-variant-numeric:tabular-nums}
-  .wrap{max-width:560px;margin:0 auto;padding:14px 14px 150px}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
-  header{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 12px;border-bottom:2px solid var(--ink)}
-  header h1{margin:0;font-size:22px;font-weight:800}
-  header h1 span{color:var(--accent)}
-  header .meta{font-size:12px;color:var(--ink-3);text-align:right}
+  /* ---------- Layout ---------- */
+  .wrap{max-width:1080px;margin:0 auto;padding:16px 14px 96px}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 4px 14px;border-bottom:2px solid var(--ink)}
+  header.top h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+  header.top h1 span{color:var(--accent);font-weight:800}
+  header.top .meta{font-size:12px;color:var(--ink-3);text-align:right}
 
-  section{margin-top:16px}
-  h2{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  section{margin-top:18px}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:0 2px 6px;border-bottom:1px solid var(--line-2)}
+  .section-head h2{margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .section-head .hint{font-size:12px;color:var(--ink-3)}
 
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .chip{border:2px solid var(--line-2);background:#fff;border-radius:var(--radius);padding:14px 10px;font:inherit;
-    font-size:16px;font-weight:600;color:var(--ink);text-align:left;display:flex;align-items:center;gap:10px;min-height:56px;cursor:pointer}
-  .chip .dot{width:18px;height:18px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.15)}
-  .chip.on{border-color:var(--ink);background:var(--ink);color:#fff}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:14px}
+  .panel + .panel{margin-top:10px}
 
-  .formas{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px;
-    display:flex;align-items:center;justify-content:space-between}
-  .formas button{width:56px;height:56px;border-radius:50%;border:1px solid var(--line-2);background:#fff;font-size:28px;font-weight:700;color:var(--ink)}
-  .formas .n{text-align:center}
-  .formas .n b{font-size:36px;font-weight:800;display:block}
-  .formas .n small{font-size:13px;color:var(--ink-3)}
+  /* ---------- Top bar (data/turno/operador) ---------- */
+  .topbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+  .field input,.field select,.field textarea{
+    appearance:none;font:inherit;color:var(--ink);background:#fff;
+    border:1px solid var(--line-2);border-radius:var(--radius);padding:9px 10px;min-height:40px;width:100%
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .seg{display:flex;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden;background:#fff}
+  .seg button{flex:1;background:#fff;border:0;padding:10px 8px;font:inherit;font-weight:600;color:var(--ink-2);cursor:pointer;border-right:1px solid var(--line-2)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--ink);color:#fff}
 
-  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px}
-  .kpi .l{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
-  .kpi .v{font-size:30px;font-weight:800;color:var(--ok)}
-  .fbar{display:grid;grid-template-columns:130px 1fr 54px;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);font-size:14px}
-  .fbar .nm{display:flex;align-items:center;gap:7px}
-  .fbar .nm i{width:11px;height:11px;border-radius:50%;flex:none}
-  .fbar .bar{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
-  .fbar .bar div{height:100%;transition:width .5s ease}
-  .fbar .q{text-align:right;font-weight:800}
-  .vazio{color:var(--ink-3);font-style:italic;font-size:14px;padding:8px 2px}
+  /* ---------- Novo ciclo ---------- */
+  .machine-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mbtn{border:1px solid var(--line-2);background:#fff;border-radius:var(--radius);padding:14px 12px;text-align:left;cursor:pointer;
+    display:flex;flex-direction:column;gap:2px}
+  .mbtn.on{border-color:var(--ink);background:var(--ink);color:#fff}
+  .mbtn .mtitle{font-weight:700;font-size:15px}
+  .mbtn .mcap{font-size:12px;color:var(--ink-3)}
+  .mbtn.on .mcap{color:#B9C6D3}
 
-  .rodape{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line-2);
-    padding:10px 14px calc(12px + env(safe-area-inset-bottom))}
-  .rodape .in{max-width:560px;margin:0 auto}
-  #ok{width:100%;border:0;border-radius:14px;background:var(--ok);color:#fff;font:inherit;font-size:24px;font-weight:800;padding:20px}
-  #ok:disabled{background:var(--line-2);color:#fff}
-  #msg{text-align:center;font-weight:700;font-size:15px;min-height:22px;margin-bottom:6px;color:var(--ink-3)}
-  #msg.ok{color:var(--ok)} #msg.err{color:var(--err)}
+  .flavor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+  @media(min-width:640px){.flavor-grid{grid-template-columns:repeat(5,1fr)}}
+  .fchip{border:1px solid var(--line-2);background:#fff;border-radius:var(--radius);padding:9px 8px;font:inherit;cursor:pointer;
+    text-align:left;font-size:12.5px;line-height:1.25;color:var(--chip-ink);
+    display:flex;align-items:center;gap:7px;min-height:44px}
+  .fchip .dot{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.15)}
+  .fchip.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .fchip.on .fname{font-weight:700}
+
+  .time-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+  .time-row .field{position:relative}
+  .now-btn{position:absolute;top:0;right:0;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);background:transparent;border:0;cursor:pointer;padding:2px 4px}
+  .cycle-preview{margin-top:10px;font-size:12px;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:8px;
+    display:flex;flex-wrap:wrap;gap:14px}
+  .cycle-preview b{color:var(--ink);font-weight:700}
+  .actions{display:flex;gap:10px;margin-top:14px;align-items:center}
+  .btn{border:0;background:var(--ink);color:#fff;padding:12px 18px;border-radius:var(--radius);font:inherit;font-weight:700;cursor:pointer;letter-spacing:.01em}
+  .btn:hover{background:var(--accent-2)}
+  .btn:disabled{opacity:.6}
+  .btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line-2)}
+  .btn.danger{background:#fff;color:var(--err);border:1px solid #E9C0CB}
+  .btn.small{padding:7px 10px;font-size:12.5px}
+  .actions .msg{font-size:12.5px;color:var(--ink-3)}
+
+  /* ---------- Ciclos do dia ---------- */
+  table.cycles{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
+  table.cycles th,table.cycles td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line)}
+  table.cycles th{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line-2)}
+  table.cycles td.num,table.cycles th.num{text-align:right}
+  table.cycles .fdot{width:10px;height:10px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.15)}
+  table.cycles .desv-ok{color:var(--ok);font-weight:600}
+  table.cycles .desv-warn{color:var(--warn);font-weight:600}
+  table.cycles .desv-err{color:var(--err);font-weight:600}
+  table.cycles .row-actions button{background:transparent;border:0;color:var(--ink-3);cursor:pointer;font:inherit;font-size:12px;padding:2px 4px}
+  table.cycles .row-actions button:hover{color:var(--err)}
+  .empty{padding:20px 6px;color:var(--ink-3);font-size:13px;font-style:italic}
+
+  /* ---------- Desperdício ---------- */
+  .waste-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .waste-grid .field .unit{font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:normal;text-transform:none;margin-left:6px}
+  .waste-vis{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .jar{position:relative;height:80px;border:2px solid var(--ink);border-top:0;border-radius:0 0 8px 8px;overflow:hidden;background:#fff}
+  .jar .fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,#7FB6C9 0%,#4D8FA6 100%);transition:height .3s ease}
+  .jar .label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink);text-shadow:0 0 4px #fff}
+  .powder-bar{height:80px;border:2px solid var(--ink);position:relative;overflow:hidden;background:#fff}
+  .powder-bar .fill{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(45deg,#D4A968 0 4px,#C29556 4px 8px)}
+  .powder-bar .label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink);text-shadow:0 0 4px #fff}
+
+  /* ---------- Resumo / KPIs ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
+  .kpi{background:#fff;border:1px solid var(--line);padding:12px}
+  .kpi .k-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .kpi .k-value{font-size:24px;font-weight:800;margin-top:4px;color:var(--ink);letter-spacing:-.01em}
+  .kpi .k-sub{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+  .kpi.warn .k-value{color:var(--warn)}
+  .kpi.err .k-value{color:var(--err)}
+  .kpi.ok .k-value{color:var(--ok)}
+
+  .by-flavor{margin-top:12px}
+  .fbar{display:grid;grid-template-columns:150px 1fr 60px 60px;gap:10px;align-items:center;padding:5px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .fbar .fname{display:flex;align-items:center;gap:8px}
+  .fbar .fname .dot{width:10px;height:10px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.15)}
+  .fbar .bar{height:10px;background:var(--line);position:relative}
+  .fbar .bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--ink)}
+  .fbar .n{text-align:right;font-weight:700}
+  .fbar .c{text-align:right;color:var(--ink-3);font-size:12px}
+
+  .by-machine{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .machine-card{background:#fff;border:1px solid var(--line);padding:12px}
+  .machine-card .m-name{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+  .machine-card .m-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .machine-card .m-body .mv{font-size:20px;font-weight:800;color:var(--ink)}
+  .machine-card .m-body .ml{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+  /* ---------- Config ---------- */
+  details.config{background:transparent;margin-top:18px}
+  details.config summary{cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding:8px 2px;border-bottom:1px solid var(--line-2)}
+  details.config[open] summary{color:var(--ink)}
+  .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media(min-width:640px){.config-grid{grid-template-columns:repeat(4,1fr)}}
+
+  /* ---------- Bottom bar ---------- */
+  .footer-actions{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line-2);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:flex-end;z-index:10}
+  .footer-actions .spacer{flex:1;font-size:12px;color:var(--ink-3);align-self:center}
+
+  /* ---------- Toast ---------- */
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:80px;background:var(--ink);color:#fff;
+    padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+  .toast.on{opacity:1}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Caiu <span>Gelo</span></h1>
-    <div class="meta">Boca Gelada<br/><span id="data" class="num"></span></div>
+
+  <header class="top">
+    <h1>GD <span>Boca Gelada</span></h1>
+    <div class="meta">Gestão Diária de Produção<br/><span id="storage-status" class="num">—</span></div>
   </header>
 
-  <section>
-    <h2>1 · Sabor</h2>
-    <div class="grid" id="sabores"></div>
-  </section>
+  <!-- ============ TOP BAR ============ -->
+  <div class="topbar">
+    <div class="field">
+      <label>Data</label>
+      <input type="date" id="date" />
+    </div>
+    <div class="field">
+      <label>Operador</label>
+      <input type="text" id="operator" placeholder="Nome de quem opera" />
+    </div>
+    <div class="field" style="grid-column:1/-1">
+      <label>Turno</label>
+      <div class="seg" id="shift">
+        <button data-v="manha">Manhã</button>
+        <button data-v="tarde">Tarde</button>
+        <button data-v="noite">Noite</button>
+        <button data-v="integral">Integral</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- ============ NOVO CICLO ============ -->
   <section>
-    <h2>2 · Formas que caíram</h2>
-    <div class="formas">
-      <button onclick="mudar(-1)" aria-label="menos">−</button>
-      <div class="n"><b id="f" class="num">19</b><small id="cx">= 10 caixas</small></div>
-      <button onclick="mudar(1)" aria-label="mais">+</button>
+    <div class="section-head">
+      <h2>Novo ciclo</h2>
+      <span class="hint">Escolha máquina e sabor, informe os horários e a quantidade</span>
+    </div>
+    <div class="panel">
+      <div class="machine-row" id="machine-row"></div>
+
+      <div style="margin-top:14px">
+        <label style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)">Sabor</label>
+        <div class="flavor-grid" id="flavor-grid"></div>
+      </div>
+
+      <div class="time-row">
+        <div class="field">
+          <label>Hora início <button class="now-btn" data-target="start">Agora</button></label>
+          <input type="time" id="startTime" />
+        </div>
+        <div class="field">
+          <label>Hora fim <button class="now-btn" data-target="end">Agora</button></label>
+          <input type="time" id="endTime" />
+        </div>
+        <div class="field">
+          <label>Qtd produzida <span class="unit" id="qty-hint" style="font-weight:400;color:var(--ink-3);letter-spacing:normal;text-transform:none">un.</span></label>
+          <input type="number" id="qty" min="0" step="1" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:10px">
+        <label>Observações (opcional)</label>
+        <input type="text" id="notes" placeholder="Ex: máquina parou 5 min, sabor com pouco pó, etc." />
+      </div>
+
+      <div class="cycle-preview" id="preview">
+        <span>Duração: <b id="pv-dur">—</b></span>
+        <span>Padrão: <b id="pv-std">—</b></span>
+        <span>Desvio: <b id="pv-desv">—</b></span>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="save-cycle">Salvar ciclo</button>
+        <button class="btn secondary" id="clear-cycle">Limpar</button>
+        <span class="msg" id="save-msg"></span>
+      </div>
     </div>
   </section>
 
+  <!-- ============ CICLOS DO DIA ============ -->
   <section>
-    <h2>Produzido hoje</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="l">Caixas</div><div class="v num" id="kCx">—</div></div>
-      <div class="kpi"><div class="l">Ciclos</div><div class="v num" id="kCi">—</div></div>
+    <div class="section-head">
+      <h2>Ciclos do dia</h2>
+      <span class="hint" id="cycles-count">0 ciclos</span>
     </div>
-    <div id="barras" style="margin-top:8px"></div>
+    <div class="panel" style="padding:6px 10px">
+      <div id="cycles-list"></div>
+    </div>
   </section>
+
+  <!-- ============ DESPERDÍCIO ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Desperdício</h2>
+      <span class="hint">Jarra de 2L (gelos quebrados/caídos) + saco de pó pesado no fim do dia</span>
+    </div>
+    <div class="panel">
+      <div class="waste-grid">
+        <div class="field">
+          <label>Jarra — gelos quebrados <span class="unit">em ml (jarra = 2000 ml)</span></label>
+          <input type="number" id="jar-ml" min="0" max="2000" step="10" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Pó restante <span class="unit">em gramas</span></label>
+          <input type="number" id="powder-g" min="0" step="10" placeholder="0" />
+        </div>
+      </div>
+      <div class="waste-vis">
+        <div class="jar" title="Jarra 2L"><div class="fill" id="jar-fill"></div><div class="label" id="jar-label">0 ml</div></div>
+        <div class="powder-bar" title="Pó"><div class="fill" id="powder-fill"></div><div class="label" id="powder-label">0 g</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESUMO ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Resumo do dia</h2>
+      <span class="hint" id="meta-hint"></span>
+    </div>
+    <div class="panel">
+      <div class="kpis">
+        <div class="kpi"><div class="k-label">Produzido</div><div class="k-value num" id="kpi-prod">0</div><div class="k-sub" id="kpi-prod-sub">unidades</div></div>
+        <div class="kpi"><div class="k-label">Ciclos</div><div class="k-value num" id="kpi-cycles">0</div><div class="k-sub" id="kpi-cycles-sub">grande 0 · pequena 0</div></div>
+        <div class="kpi"><div class="k-label">Tempo médio</div><div class="k-value num" id="kpi-time">—</div><div class="k-sub" id="kpi-time-sub">min/ciclo</div></div>
+        <div class="kpi"><div class="k-label">Perda</div><div class="k-value num" id="kpi-loss">0%</div><div class="k-sub" id="kpi-loss-sub">estimada</div></div>
+      </div>
+
+      <div class="by-flavor" id="by-flavor"></div>
+
+      <div class="by-machine" id="by-machine"></div>
+    </div>
+  </section>
+
+  <!-- ============ CONFIG ============ -->
+  <details class="config">
+    <summary>Configurações e padrões</summary>
+    <div class="panel" style="margin-top:8px">
+      <div class="config-grid">
+        <div class="field">
+          <label>Tempo padrão — Grande <span class="unit" style="font-weight:400;color:var(--ink-3);letter-spacing:normal;text-transform:none">min</span></label>
+          <input type="number" id="cfg-std-grande" min="0" step="1" />
+        </div>
+        <div class="field">
+          <label>Tempo padrão — Pequena <span class="unit" style="font-weight:400;color:var(--ink-3);letter-spacing:normal;text-transform:none">min</span></label>
+          <input type="number" id="cfg-std-pequena" min="0" step="1" />
+        </div>
+        <div class="field">
+          <label>Peso médio por unidade <span class="unit" style="font-weight:400;color:var(--ink-3);letter-spacing:normal;text-transform:none">g</span></label>
+          <input type="number" id="cfg-g-unit" min="1" step="1" />
+        </div>
+        <div class="field">
+          <label>Meta do dia <span class="unit" style="font-weight:400;color:var(--ink-3);letter-spacing:normal;text-transform:none">unidades</span></label>
+          <input type="number" id="cfg-meta" min="0" step="10" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn small" id="cfg-save">Salvar configuração</button>
+        <span class="msg">O peso médio por unidade é usado pra estimar quantos picolés a jarra de 2L representa.</span>
+      </div>
+    </div>
+  </details>
+
 </div>
 
-<div class="rodape"><div class="in">
-  <div id="msg">Escolha o sabor</div>
-  <button id="ok" onclick="enviar()" disabled>✔ CAIU GELO</button>
-</div></div>
+<div class="footer-actions">
+  <span class="spacer" id="footer-hint">Cada ciclo salvo vai direto para a planilha.</span>
+  <button class="btn secondary small" id="export-csv">Exportar CSV</button>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
+/* ========================================================================
+   Config estática
+   ======================================================================== */
+// id = nome igual ao da aba Cadastros (é o que vai pra planilha)
+const FLAVORS = [
+  { id:'S.01 - Água de coco',      name:'Água de coco',     color:'#EDE4D3' },
+  { id:'S.02 - Morango',           name:'Morango',          color:'#E74C3C' },
+  { id:'S.03 - Maracujá',          name:'Maracujá',         color:'#F4C724' },
+  { id:'S.04 - Maçã Verde',        name:'Maçã verde',       color:'#8BC34A' },
+  { id:'S.05 - Bob',               name:'BOB',              color:'#9B59B6' },
+  { id:'S.06 - Melancia',          name:'Melancia',         color:'#EC7B93' },
+  { id:'S.07 - Limão',             name:'Limão',            color:'#B8D95A' },
+  { id:'S.08 - Laranja',           name:'Laranja',          color:'#F39C12' },
+  { id:'S.09 - Limão com sal',     name:'Limão c/ sal',     color:'#A8C88F' },
+  { id:'S.10 - Frutas cítricas',   name:'Frutas cítricas',  color:'#F1C40F' },
+  { id:'S.11 - Frutas vermelhas',  name:'Frutas vermelhas', color:'#8E1E3B' },
+  { id:'S.12 - Abacaxi',           name:'Abacaxi',          color:'#F5D547' },
+  { id:'S.13 - Brasil',            name:'Brasil',           color:'#1E9E4A' },
+];
+const MACHINES = [
+  { id:'grande',  name:'Máquina Grande',  capacity:304 },  // 19 formas × 16
+  { id:'pequena', name:'Máquina Pequena', capacity:160 },
+];
+
+const DEFAULT_CFG = {
+  stdGrande: 60,     // min por ciclo — ajuste depois
+  stdPequena: 45,
+  gPerUnit: 50,      // g por picolé (estimativa) — ajuste na config
+  meta: 960,         // meta diária default (unidades)
+};
+
+/* ========================================================================
+   Utilidades gerais
+   ======================================================================== */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const uid = () => Math.random().toString(36).slice(2,10);
+const todayISO = () => {
+  const d = new Date(); const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+};
+const nowHM = () => {
+  const d = new Date(); const p = n => String(n).padStart(2,'0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const hmToMin = hm => {
+  if(!hm) return null;
+  const [h,m] = hm.split(':').map(Number);
+  return h*60 + m;
+};
+const durMin = (start, end) => {
+  const a = hmToMin(start), b = hmToMin(end);
+  if(a==null || b==null) return null;
+  let d = b - a; if(d < 0) d += 24*60; // cruzou meia-noite
+  return d;
+};
+const fmtDur = m => {
+  if(m==null || isNaN(m)) return '—';
+  const h = Math.floor(m/60), r = m%60;
+  return h ? `${h}h ${r}min` : `${r} min`;
+};
+const flavor = id => FLAVORS.find(f => f.id === id);
+const machine = id => MACHINES.find(m => m.id === id);
+
+/* ========================================================================
+   Planilha — ciclos e desperdício vão para a aba HISTÓRICO
+   (cabeçalho e configuração ficam guardados no próprio celular)
+   ======================================================================== */
 // Link do App da Web do Apps Script da planilha PRODUÇÃO BOCA GELADA
 const API = 'COLE_AQUI_O_LINK_DO_APP_DA_WEB';
 
-// Nomes iguais aos da aba Cadastros (J5:J17)
-const SABORES = [
-  ['S.01 - Água de coco','#EDE4D3'], ['S.02 - Morango','#E74C3C'], ['S.03 - Maracujá','#F4C724'],
-  ['S.04 - Maçã Verde','#8BC34A'],   ['S.05 - Bob','#9B59B6'],     ['S.06 - Melancia','#EC7B93'],
-  ['S.07 - Limão','#B8D95A'],        ['S.08 - Laranja','#F39C12'], ['S.09 - Limão com sal','#A8C88F'],
-  ['S.10 - Frutas cítricas','#F1C40F'], ['S.11 - Frutas vermelhas','#8E1E3B'], ['S.12 - Abacaxi','#F5D547'],
-  ['S.13 - Brasil','#1E9E4A']
-];
-const curto = s => s.replace(/^S\.\d+\s*-\s*/, '');
-const caixas = f => Math.round(f * 16 / 30);
-let sabor = '', formas = 19;
+async function api(dados){
+  const r = await fetch(API, { method:'POST', body: JSON.stringify(dados) });
+  const j = await r.json();
+  if(!j.ok) throw new Error('falhou');
+  $('#storage-status').textContent = 'salvo na planilha ✔';
+  return j;
+}
+function semConexao(){
+  $('#storage-status').textContent = 'sem conexão ⚠';
+  toast('Sem conexão com a planilha. Tente de novo.');
+}
+function aplicarDia(j){
+  state.cycles = j.ciclos.map(c => ({ ...c, cycleMin: durMin(c.startTime, c.endTime),
+    stdMin: c.machine === 'grande' ? state.cfg.stdGrande : state.cfg.stdPequena }));
+  state.waste = j.perda;
+}
 
-document.getElementById('data').textContent = new Date().toLocaleDateString('pt-BR');
+const local = {
+  get(k, def){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+async function loadHeader(){ return local.get('gd:header', { operator:'', shift:'' }); }
+async function saveHeader(date, h){ local.set('gd:header', h); }
+async function loadCfg(){ return Object.assign({}, DEFAULT_CFG, local.get('gd:config', {})); }
+async function saveCfg(c){ local.set('gd:config', c); }
 
-const g = document.getElementById('sabores');
-SABORES.forEach(([nome, cor]) => {
-  const b = document.createElement('button');
-  b.className = 'chip';
-  b.innerHTML = `<span class="dot" style="background:${cor}"></span>${curto(nome)}`;
-  b.onclick = () => {
-    sabor = nome;
-    document.querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
-    document.getElementById('ok').disabled = false;
-    aviso(curto(nome) + ' · ' + formas + ' formas');
+/* ========================================================================
+   Estado da aplicação
+   ======================================================================== */
+const state = {
+  date: todayISO(),
+  header: { operator:'', shift:'' },
+  cfg: { ...DEFAULT_CFG },
+  cycles: [],
+  waste: { jarMl:0, powderG:0 },
+  form: { machine:null, flavor:null }, // seleção atual do formulário
+};
+
+/* ========================================================================
+   Render — máquinas e sabores no formulário
+   ======================================================================== */
+function renderMachineButtons(){
+  const row = $('#machine-row');
+  row.innerHTML = MACHINES.map(m => `
+    <button type="button" class="mbtn${state.form.machine===m.id?' on':''}" data-m="${m.id}">
+      <span class="mtitle">${m.name}</span>
+      <span class="mcap num">Capacidade: ${m.capacity} un./ciclo</span>
+    </button>
+  `).join('');
+  row.onclick = e => {
+    const b = e.target.closest('.mbtn'); if(!b) return;
+    state.form.machine = b.dataset.m;
+    // pré-preencher qtd com capacidade se estiver vazio ou igual à outra capacidade
+    const qtyEl = $('#qty');
+    const cap = machine(state.form.machine).capacity;
+    if(!qtyEl.value || MACHINES.some(x => Number(qtyEl.value) === x.capacity)){
+      qtyEl.value = cap;
+    }
+    $('#qty-hint').textContent = `un. (capacidade: ${cap})`;
+    renderMachineButtons();
+    updatePreview();
   };
-  g.appendChild(b);
-});
-
-function aviso(t, cls){ const m = document.getElementById('msg'); m.textContent = t; m.className = cls || ''; }
-
-function mudar(d){
-  formas = Math.min(19, Math.max(1, formas + d));
-  document.getElementById('f').textContent = formas;
-  document.getElementById('cx').textContent = '= ' + caixas(formas) + ' caixas';
-  if (sabor) aviso(curto(sabor) + ' · ' + formas + ' formas');
+}
+function renderFlavorChips(){
+  const grid = $('#flavor-grid');
+  grid.innerHTML = FLAVORS.map(f => `
+    <button type="button" class="fchip${state.form.flavor===f.id?' on':''}" data-f="${f.id}" title="${f.name}">
+      <span class="dot" style="background:${f.color}"></span>
+      <span class="fname">${f.name}</span>
+    </button>
+  `).join('');
+  grid.onclick = e => {
+    const b = e.target.closest('.fchip'); if(!b) return;
+    state.form.flavor = b.dataset.f;
+    renderFlavorChips();
+  };
 }
 
-function mostrar(h){
-  document.getElementById('kCx').textContent = h.caixas;
-  document.getElementById('kCi').textContent = h.ciclos;
-  const max = Math.max(1, ...Object.values(h.porSabor || {}));
-  const linhas = SABORES.filter(([n]) => (h.porSabor || {})[n])
-    .sort((a, b) => h.porSabor[b[0]] - h.porSabor[a[0]])
-    .map(([n, cor]) => `<div class="fbar"><div class="nm"><i style="background:${cor}"></i>${curto(n)}</div>
-      <div class="bar"><div style="width:${h.porSabor[n] / max * 100}%;background:${cor}"></div></div>
-      <div class="q num">${h.porSabor[n]} cx</div></div>`).join('');
-  document.getElementById('barras').innerHTML = linhas || '<div class="vazio">Nada apontado hoje ainda.</div>';
+/* ========================================================================
+   Preview do ciclo (duração vs padrão)
+   ======================================================================== */
+function updatePreview(){
+  const s = $('#startTime').value, e = $('#endTime').value;
+  const d = durMin(s, e);
+  const std = state.form.machine === 'grande' ? state.cfg.stdGrande
+             : state.form.machine === 'pequena' ? state.cfg.stdPequena : null;
+  $('#pv-dur').textContent = d==null ? '—' : `${d} min`;
+  $('#pv-std').textContent = std==null ? '—' : `${std} min`;
+  const desvEl = $('#pv-desv');
+  if(d!=null && std!=null && std>0){
+    const p = ((d - std) / std) * 100;
+    const sign = p > 0 ? '+' : '';
+    desvEl.textContent = `${sign}${p.toFixed(0)}%`;
+    desvEl.style.color = p <= 5 ? 'var(--ok)' : (p <= 20 ? 'var(--warn)' : 'var(--err)');
+  } else {
+    desvEl.textContent = '—';
+    desvEl.style.color = '';
+  }
 }
 
-function chamar(dados){
-  return fetch(API, { method: 'POST', body: JSON.stringify(dados) }).then(r => r.json());
+/* ========================================================================
+   Salvar / limpar ciclo
+   ======================================================================== */
+async function saveCycle(){
+  const err = [];
+  if(!state.form.machine) err.push('escolha a máquina');
+  if(!state.form.flavor)  err.push('escolha o sabor');
+  const s = $('#startTime').value, e = $('#endTime').value;
+  if(!s) err.push('hora início');
+  if(!e) err.push('hora fim');
+  const q = Number($('#qty').value);
+  if(!q || q<0) err.push('quantidade');
+  if(err.length){ toast('Faltando: ' + err.join(', ')); return; }
+
+  const d = durMin(s, e);
+  const std = state.form.machine === 'grande' ? state.cfg.stdGrande : state.cfg.stdPequena;
+  const cycle = {
+    id: uid(),
+    machine: state.form.machine,
+    flavor: state.form.flavor,
+    startTime: s, endTime: e,
+    cycleMin: d,
+    stdMin: std,
+    qty: q,
+    notes: $('#notes').value.trim(),
+    ts: new Date().toISOString(),
+  };
+  cycle.operator = state.header.operator || '';
+  cycle.shift = state.header.shift || '';
+  const btn = $('#save-cycle'); btn.disabled = true; btn.textContent = 'Salvando…';
+  try {
+    aplicarDia(await api({ acao:'salvar', data: state.date, ciclo: cycle }));
+    clearCycleForm(true);
+    renderAll();
+    toast('✔ Ciclo salvo na planilha');
+  } catch { semConexao(); }
+  btn.disabled = false; btn.textContent = 'Salvar ciclo';
+}
+function clearCycleForm(keepMachine=false){
+  if(!keepMachine){ state.form.machine = null; }
+  state.form.flavor = null;
+  $('#startTime').value = '';
+  $('#endTime').value = '';
+  $('#qty').value = keepMachine && state.form.machine ? machine(state.form.machine).capacity : '';
+  $('#notes').value = '';
+  renderMachineButtons();
+  renderFlavorChips();
+  updatePreview();
 }
 
-function enviar(){
-  if (!sabor) return;
-  const ok = document.getElementById('ok'); ok.disabled = true;
-  aviso('Enviando…');
-  chamar({ acao: 'caiu', sabor, formas })
-    .then(r => {
-      aviso('✔ +' + r.caixas + ' cx de ' + curto(sabor) + ' (' + r.hora + ')', 'ok');
-      mostrar(r.hoje);
-      if (navigator.vibrate) navigator.vibrate(120);
-      formas = 19;
-      document.getElementById('f').textContent = 19;
-      document.getElementById('cx').textContent = '= 10 caixas';
-    })
-    .catch(() => aviso('⚠ Não foi. Confira a internet e toque de novo.', 'err'))
-    .finally(() => { ok.disabled = false; });
+/* ========================================================================
+   Ciclos do dia — tabela
+   ======================================================================== */
+function classifyDesv(p){
+  if(p==null) return '';
+  if(p <= 5)  return 'desv-ok';
+  if(p <= 20) return 'desv-warn';
+  return 'desv-err';
+}
+function renderCycles(){
+  const list = $('#cycles-list');
+  const count = state.cycles.length;
+  $('#cycles-count').textContent = count === 1 ? '1 ciclo' : `${count} ciclos`;
+  if(count === 0){
+    list.innerHTML = `<div class="empty">Nenhum ciclo registrado ainda. Preencha o formulário acima.</div>`;
+    return;
+  }
+  const rows = state.cycles.slice().sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''))
+    .map(c => {
+      const f = flavor(c.flavor) || { name:c.flavor, color:'#ccc' };
+      const m = machine(c.machine) || { name:c.machine };
+      const desvP = (c.stdMin>0 && c.cycleMin!=null) ? ((c.cycleMin - c.stdMin)/c.stdMin)*100 : null;
+      const desvTxt = desvP==null ? '—' : `${desvP>0?'+':''}${desvP.toFixed(0)}%`;
+      return `<tr>
+        <td class="num">${c.startTime}<br/><span style="color:var(--ink-3);font-size:11px">→ ${c.endTime}</span></td>
+        <td>${m.name.replace('Máquina ','')}</td>
+        <td><span class="fdot" style="background:${f.color}"></span>${f.name}</td>
+        <td class="num">${c.cycleMin ?? '—'} min</td>
+        <td class="num ${classifyDesv(desvP)}">${desvTxt}</td>
+        <td class="num"><b>${c.qty}</b></td>
+        <td>${c.notes ? `<span style="color:var(--ink-3);font-size:12px">${escapeHtml(c.notes)}</span>` : ''}</td>
+        <td class="row-actions"><button data-del="${c.id}" title="Excluir ciclo">excluir</button></td>
+      </tr>`;
+    }).join('');
+  list.innerHTML = `<table class="cycles">
+    <thead><tr>
+      <th class="num">Horário</th><th>Máq.</th><th>Sabor</th>
+      <th class="num">Duração</th><th class="num">Desvio</th><th class="num">Qtd</th>
+      <th>Obs.</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  list.onclick = async e => {
+    const b = e.target.closest('[data-del]'); if(!b) return;
+    const id = b.dataset.del;
+    if(!confirm('Excluir este ciclo?')) return;
+    try { aplicarDia(await api({ acao:'excluir', data: state.date, id })); renderAll(); toast('Ciclo excluído'); }
+    catch { semConexao(); }
+  };
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ========================================================================
+   Desperdício
+   ======================================================================== */
+function renderWasteVis(){
+  const jarPct = Math.min(100, Math.max(0, (state.waste.jarMl / 2000) * 100));
+  $('#jar-fill').style.height = jarPct + '%';
+  $('#jar-label').textContent = `${state.waste.jarMl || 0} ml`;
+  // barra do pó — escala até 2000 g como referência visual (ajustável)
+  const powderRefMax = Math.max(2000, state.waste.powderG || 0);
+  const pPct = Math.min(100, Math.max(0, ((state.waste.powderG||0) / powderRefMax) * 100));
+  $('#powder-fill').style.width = pPct + '%';
+  $('#powder-label').textContent = `${state.waste.powderG || 0} g`;
+}
+let perdaTO;
+async function onWasteChange(){
+  const jar = Math.max(0, Math.min(2000, Number($('#jar-ml').value)||0));
+  const powder = Math.max(0, Number($('#powder-g').value)||0);
+  state.waste = { jarMl: jar, powderG: powder };
+  renderWasteVis();
+  renderResumo();
+  clearTimeout(perdaTO);
+  perdaTO = setTimeout(() => api({ acao:'perda', data: state.date, jarra: jar, po: powder }).catch(semConexao), 1500);
 }
 
-chamar({ acao: 'hoje' }).then(r => mostrar(r.hoje)).catch(() => aviso('⚠ Sem conexão com a planilha', 'err'));
+/* ========================================================================
+   Resumo / KPIs
+   ======================================================================== */
+function renderResumo(){
+  // Totais
+  const totalProd = state.cycles.reduce((s,c) => s + (c.qty||0), 0);
+  const totCiclos = state.cycles.length;
+  const totGrande = state.cycles.filter(c => c.machine==='grande').length;
+  const totPequena = state.cycles.filter(c => c.machine==='pequena').length;
+
+  const cycTimes = state.cycles.filter(c => c.cycleMin != null).map(c => c.cycleMin);
+  const avgTime = cycTimes.length ? Math.round(cycTimes.reduce((a,b)=>a+b,0)/cycTimes.length) : null;
+
+  // Perda estimada
+  // Jarra: assumindo densidade ~1 g/ml → jarMl gramas → / gPerUnit = unidades quebradas
+  // Pó: gramas / gPerUnit = "unidades equivalentes de matéria-prima perdida"
+  const gUnit = state.cfg.gPerUnit || DEFAULT_CFG.gPerUnit;
+  const unidQuebradas = (state.waste.jarMl || 0) / gUnit;
+  const unidPo = (state.waste.powderG || 0) / gUnit;
+  const perdaUn = unidQuebradas + unidPo;
+  const base = totalProd + perdaUn;
+  const perdaPct = base > 0 ? (perdaUn / base) * 100 : 0;
+
+  // KPIs
+  $('#kpi-prod').textContent = totalProd;
+  $('#kpi-prod-sub').textContent = state.cfg.meta > 0
+    ? `= ${Math.round(totalProd/30)} cx · ${Math.round((totalProd/state.cfg.meta)*100)}% da meta`
+    : `= ${Math.round(totalProd/30)} caixas`;
+  $('#kpi-cycles').textContent = totCiclos;
+  $('#kpi-cycles-sub').textContent = `grande ${totGrande} · pequena ${totPequena}`;
+  $('#kpi-time').textContent = avgTime==null ? '—' : avgTime;
+  $('#kpi-time-sub').textContent = 'min/ciclo';
+  const lossEl = $('#kpi-loss');
+  lossEl.textContent = `${perdaPct.toFixed(1)}%`;
+  const kLoss = lossEl.closest('.kpi');
+  kLoss.classList.remove('warn','err','ok');
+  if(perdaPct >= 5) kLoss.classList.add('err');
+  else if(perdaPct >= 2) kLoss.classList.add('warn');
+  else if(perdaPct > 0) kLoss.classList.add('ok');
+  $('#kpi-loss-sub').textContent = `~${Math.round(perdaUn)} un. eq.`;
+
+  // Hint meta
+  $('#meta-hint').textContent = state.cfg.meta > 0
+    ? `Meta: ${state.cfg.meta} un.`
+    : 'Defina a meta na configuração';
+
+  // Por sabor
+  const byF = {};
+  for(const c of state.cycles){
+    if(!byF[c.flavor]) byF[c.flavor] = { qty:0, cycles:0 };
+    byF[c.flavor].qty += (c.qty||0);
+    byF[c.flavor].cycles += 1;
+  }
+  const maxQty = Math.max(1, ...Object.values(byF).map(v => v.qty));
+  const flavorRows = FLAVORS
+    .map(f => ({ f, d: byF[f.id] || { qty:0, cycles:0 } }))
+    .filter(x => x.d.qty > 0)
+    .sort((a,b) => b.d.qty - a.d.qty)
+    .map(({f,d}) => `
+      <div class="fbar">
+        <div class="fname"><span class="dot" style="background:${f.color}"></span>${f.name}</div>
+        <div class="bar"><div class="fill" style="width:${(d.qty/maxQty)*100}%;background:${f.color}"></div></div>
+        <div class="n num">${d.qty}</div>
+        <div class="c num">${d.cycles} ciclo${d.cycles>1?'s':''}</div>
+      </div>
+    `).join('');
+  $('#by-flavor').innerHTML = flavorRows || `<div class="empty">Nenhuma produção registrada.</div>`;
+
+  // Por máquina
+  const machineCards = MACHINES.map(m => {
+    const cs = state.cycles.filter(c => c.machine === m.id);
+    const prod = cs.reduce((s,c) => s + (c.qty||0), 0);
+    const cnt = cs.length;
+    const times = cs.filter(c => c.cycleMin!=null).map(c => c.cycleMin);
+    const avg = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : null;
+    const std = m.id === 'grande' ? state.cfg.stdGrande : state.cfg.stdPequena;
+    const desvP = (avg!=null && std>0) ? ((avg - std)/std)*100 : null;
+    const desvTxt = desvP==null ? '—' : `${desvP>0?'+':''}${desvP.toFixed(0)}%`;
+    const desvCol = desvP==null ? 'var(--ink-3)' : (desvP<=5?'var(--ok)':(desvP<=20?'var(--warn)':'var(--err)'));
+    return `<div class="machine-card">
+      <div class="m-name">${m.name}</div>
+      <div class="m-body">
+        <div><div class="mv num">${prod}</div><div class="ml">unidades</div></div>
+        <div><div class="mv num">${cnt}</div><div class="ml">ciclos</div></div>
+        <div><div class="mv num">${avg==null?'—':avg}</div><div class="ml">tempo médio</div></div>
+        <div><div class="mv num" style="color:${desvCol}">${desvTxt}</div><div class="ml">desvio padrão</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  $('#by-machine').innerHTML = machineCards;
+}
+
+/* ========================================================================
+   Toast
+   ======================================================================== */
+let toastTO;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTO); toastTO = setTimeout(() => t.classList.remove('on'), 1800);
+}
+
+/* ========================================================================
+   Export CSV
+   ======================================================================== */
+function exportCSV(){
+  const lines = [];
+  lines.push(`GD Gelos Saborizados,,,,,,,`);
+  lines.push(`Data,${state.date},Operador,${state.header.operator||''},Turno,${state.header.shift||''},,`);
+  lines.push('');
+  lines.push(`CICLOS`);
+  lines.push(`Início,Fim,Máquina,Sabor,Duração (min),Padrão (min),Desvio %,Qtd,Observações`);
+  for(const c of state.cycles){
+    const f = flavor(c.flavor); const m = machine(c.machine);
+    const desvP = (c.stdMin>0 && c.cycleMin!=null) ? ((c.cycleMin - c.stdMin)/c.stdMin)*100 : '';
+    lines.push([c.startTime, c.endTime, m?m.name:c.machine, f?f.name:c.flavor,
+      c.cycleMin ?? '', c.stdMin ?? '', desvP===''?'':desvP.toFixed(1),
+      c.qty, csvSafe(c.notes||'')].join(','));
+  }
+  lines.push('');
+  lines.push(`DESPERDÍCIO`);
+  lines.push(`Jarra (ml),Pó (g),Peso médio/un (g),Unid. quebradas (est.),Unid. equiv. pó`);
+  const g = state.cfg.gPerUnit;
+  lines.push([state.waste.jarMl||0, state.waste.powderG||0, g,
+    ((state.waste.jarMl||0)/g).toFixed(1),
+    ((state.waste.powderG||0)/g).toFixed(1)].join(','));
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `gd-gelos-${state.date}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('CSV exportado');
+}
+function csvSafe(s){ if(/[,"\n]/.test(s)){ return `"${s.replace(/"/g,'""')}"`; } return s; }
+
+/* ========================================================================
+   Header (operador/turno) e mudança de data
+   ======================================================================== */
+async function onHeaderChange(){
+  state.header.operator = $('#operator').value.trim();
+  await saveHeader(state.date, state.header);
+}
+function setShiftUI(){
+  $$('#shift button').forEach(b => b.classList.toggle('on', b.dataset.v === state.header.shift));
+}
+function bindShift(){
+  $('#shift').onclick = async e => {
+    const b = e.target.closest('button[data-v]'); if(!b) return;
+    state.header.shift = state.header.shift === b.dataset.v ? '' : b.dataset.v;
+    setShiftUI();
+    await saveHeader(state.date, state.header);
+  };
+}
+async function changeDate(newDate){
+  state.date = newDate;
+  state.header = await loadHeader();
+  $('#storage-status').textContent = 'carregando…';
+  try { aplicarDia(await api({ acao:'dia', data: newDate })); }
+  catch { state.cycles = []; state.waste = { jarMl:0, powderG:0 }; semConexao(); }
+  $('#operator').value = state.header.operator || '';
+  $('#jar-ml').value = state.waste.jarMl || '';
+  $('#powder-g').value = state.waste.powderG || '';
+  setShiftUI();
+  renderAll();
+}
+
+/* ========================================================================
+   Config
+   ======================================================================== */
+function loadCfgUI(){
+  $('#cfg-std-grande').value = state.cfg.stdGrande;
+  $('#cfg-std-pequena').value = state.cfg.stdPequena;
+  $('#cfg-g-unit').value = state.cfg.gPerUnit;
+  $('#cfg-meta').value = state.cfg.meta;
+}
+async function saveCfgUI(){
+  state.cfg = {
+    stdGrande: Math.max(0, Number($('#cfg-std-grande').value)||0),
+    stdPequena: Math.max(0, Number($('#cfg-std-pequena').value)||0),
+    gPerUnit: Math.max(1, Number($('#cfg-g-unit').value)||DEFAULT_CFG.gPerUnit),
+    meta: Math.max(0, Number($('#cfg-meta').value)||0),
+  };
+  await saveCfg(state.cfg);
+  renderAll();
+  toast('Configuração salva');
+}
+
+/* ========================================================================
+   Bootstrap
+   ======================================================================== */
+function renderAll(){
+  renderMachineButtons();
+  renderFlavorChips();
+  renderCycles();
+  renderWasteVis();
+  renderResumo();
+  updatePreview();
+}
+
+async function init(){
+  // status do storage
+
+  state.cfg = await loadCfg();
+  loadCfgUI();
+
+  $('#date').value = state.date;
+  await changeDate(state.date);
+
+  // eventos
+  $('#date').addEventListener('change', e => changeDate(e.target.value));
+  $('#operator').addEventListener('change', onHeaderChange);
+  bindShift();
+
+  $$('.now-btn').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    const t = b.dataset.target;
+    if(t === 'start') $('#startTime').value = nowHM();
+    if(t === 'end')   $('#endTime').value = nowHM();
+    updatePreview();
+  }));
+  $('#startTime').addEventListener('change', updatePreview);
+  $('#endTime').addEventListener('change', updatePreview);
+  $('#save-cycle').addEventListener('click', saveCycle);
+  $('#clear-cycle').addEventListener('click', () => clearCycleForm(false));
+
+  $('#jar-ml').addEventListener('change', onWasteChange);
+  $('#powder-g').addEventListener('change', onWasteChange);
+  $('#jar-ml').addEventListener('input', onWasteChange);
+  $('#powder-g').addEventListener('input', onWasteChange);
+
+  $('#cfg-save').addEventListener('click', saveCfgUI);
+  $('#export-csv').addEventListener('click', exportCSV);
+}
+init();
 </script>
 </body>
 </html>
