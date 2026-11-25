@@ -1,0 +1,10 @@
+{
+  "name": "Boca Gelada — Produção e Estoque",
+  "short_name": "Boca Gelada",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F4F6F8",
+  "theme_color": "#0F1B2A",
+  "lang": "pt-BR",
+  "icons": []
+}
